@@ -30,7 +30,7 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
   if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 	  return -EIO;
  
-  i2c_data = devm_kzalloc(&client->dev, sizeof(*i2c_data), GFP_KERNEL)'
+  i2c_data = devm_kzalloc(&client->dev, sizeof(*i2c_data), GFP_KERNEL)
   if(!i2c_data)
 	  return -ENOMEM;
  	
