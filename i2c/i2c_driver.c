@@ -16,6 +16,14 @@ struct device_data {
   
 }
 
+/*
+struct i2c_device_data {
+  	int irq;
+  	struct gpio_chip;
+	struct dma_chan *dma_rx, *dma_tx;
+}
+*/
+
 unsigned char *buffer; /*array pointer for buffer  */
 #define MAX_BUFFER_SIZE 16*1024  /* 64Kb buffer size */
 
@@ -29,7 +37,22 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
  
   if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 	  return -EIO;
- 
+	
+/*	
+  struct i2c_device_data *my_data;
+
+  const struct of_device_id *match;
+  match = of_match_device(i2c_of_ids, &client->dev);
+
+  if (match)
+  {
+	my_data = match->data;
+  }
+  else {
+	my_data = dev_get_platdata(&client->dev);
+  }
+  */
+
   i2c_data = devm_kzalloc(&client->dev, sizeof(*i2c_data), GFP_KERNEL)
   if(!i2c_data)
 	  return -ENOMEM;
