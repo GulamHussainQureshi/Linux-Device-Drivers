@@ -12,15 +12,34 @@
 #include <linux/delay.h>
 
 struct device_data {
-  unsigned char *buffer;    /*array pointer for buffer  */
   struct i2c_client *i2c;
+  
 }
 
+unsigned char *buffer; /*array pointer for buffer  */
+#define MAX_BUFFER_SIZE 16*1024  /* 64Kb buffer size */
 
 
 static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id) 
 {
-  
+  struct device_data *i2c_data;
+	
+  int num;
+  dev_t dev_no;
+ 
+  if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+	  return -EIO;
+ 
+  i2c_data = devm_kzalloc(&client->dev, sizeof(*i2c_data), GFP_KERNEL)'
+  if(!i2c_data)
+	  return -ENOMEM;
+ 	
+  i2c_data->i2c = client;
+ 
+  buffer = kzalloc
+	
+  i2c_set_clientdata(client, i2c_data);  /* sets the void *driver_data field of the struct device substructure in the 
+  						struct i2c_client structure */
 }
 
 static int i2c_remove(struct i2c_client *client)
