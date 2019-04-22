@@ -12,14 +12,22 @@
 #include <linux/delay.h>
 #include <asm/uaccess.h>
 
-struct fake_sensor {
+struct sensor_data {
 	unsigned address;
 	int buffer_size;
+	void *data;
 }
-	
+
+
+#define MAX_BUFFER_SIZE 128  /* buffer size */
+#define DEVICE_NAME "fake_sensor"
+
 struct device_data {
   struct i2c_client *i2c;
-  struct fake_sensor *xdevice;
+  struct sensor_data *xdevice;
+  struct mutex device_mutex;
+  struct cdev device_sensor;
+  unsigned char *data;      /*array pointer for buffer  */
 }
 
 /*
@@ -31,22 +39,46 @@ struct i2c_device_data {
 */
 
 static struct class *eep_class = NULL;
-static struct cdev device_sensor;
 
-unsigned char *buffer[MAX_BUFFER_SIZE]; /*array pointer for buffer  */
-#define MAX_BUFFER_SIZE 128  /* buffer size */
-
-#define DEVICE_NAME "fake_sensor"
 
 static int sensor_open(struct inode *inode, struct file *file)
 {
         printk(KERN_INFO "Driver Open Function Called...!!!\n");
+	
+	struct device_data *dev = NULL;
+	dev = container_of(inode->i_cdev, struct device_data, cdev);
+	
+	if (dev == NULL){
+	    pr_err("Container_of did not found any valid data\n");
+		return -ENODEV; /* No such device */
+	}
+
+    filp->private_data = dev;
+
+    if (inode->i_cdev != &dev->cdev) {
+        pr_err("Device open: internal error\n");
+        return -ENODEV; /* No such device */
+    }
+	
+    dev->data = (unsigned char*)kzalloc(MAX_BUFFER_SIZE, GFP_KERNEL);
+    if (dev->data == NULL){
+        pr_err("Error allocating memory\n");
+        return -ENOMEM;
+	}
         return 0;
 }
  
 static int sensor_release(struct inode *inode, struct file *file)
 {
         printk(KERN_INFO "Driver Release Function Called...!!!\n");
+	
+	struct device_data *dev = filp->private_data;
+	
+   	    if (dev->data != NULL){
+     		    kfree(dev->data);
+  		    dev->data = NULL ;
+    }
+	
         return 0;
 }
  
@@ -55,9 +87,10 @@ static ssize_t sensor_read(struct file *filp, char __user *buf, size_t len, loff
         printk(KERN_INFO "Driver Read Function Called...!!!\n");
         return 0;
 }
+
 static ssize_t sensor_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
 {
-        printk(KERN_INFO "Driver Write Function Called...!!!\n");
+        printk(KERN_INFO "Cannot write to the sensor...!!!\n");
         return len;
 }
 
@@ -73,12 +106,11 @@ static struct file_operations sensor_fops =
 static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id) 
 {
   struct device_data *i2c_data;
-  struct fake_sensor *sensor_data;
+  struct sensor_data *matched_data;
   
     int err = 0;
     dev_t devno;
-    struct eep_dev *eep_device = NULL;
-    struct device *device = NULL;
+
  
   if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 	  return -EIO;
@@ -87,7 +119,7 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
   if(!i2c_data)
 	  return -ENOMEM;
 	
-  sensor_data = devm_kzalloc(&client->dev, sizeof(fake_sensor), GFP_KERNEL)
+  matched_data = devm_kzalloc(&client->dev, sizeof(sensor_data), GFP_KERNEL)
   if(!sensor_data)
 	  return -ENOMEM;
 	
@@ -96,16 +128,16 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
   if (match)
   {
-	sensor_data = match->data;
+	matched_data = match->data;
   }
   else {
-	sensor_data = dev_get_platdata(&client->dev);
+	matched_data = dev_get_platdata(&client->dev);
   }
  	
-  client->addr = sensor_data->address;
+  client->addr = matched_data->address;
 	
   i2c_data->i2c = client;
-  i2c_data->xdevice = sensor_data;
+  i2c_data->xdevice = matched_data;
 	
   i2c_set_clientdata(client, i2c_data);  /* sets the void *driver_data field of the struct device substructure in the 
   						struct i2c_client structure */
@@ -125,10 +157,10 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
     }
 
 	    
-    cdev_init(device_sensor, &sensor_fops);
-    device_sensor.owner = THIS_MODULE;
+    cdev_init(i2c_data->device_sensor, &sensor_fops);
+    i2c_data->device_sensor.owner = THIS_MODULE;
 	
-    err = cdev_add(&eep_device->cdev, devno, 1);
+    err = cdev_add(&i2c_data->device_sensor, devno, 1);
     if(err<0) {
 	    printk(KERN_INFO "Cannot add the device to the system\n");
             goto fail_class;
@@ -140,7 +172,8 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
             goto fail_device;
      }
 
-	
+return 0;	
+
 fail_device:
         class_destroy(device_class);
 
@@ -153,6 +186,16 @@ fail_class:
 static int i2c_remove(struct i2c_client *client)
 {
   
+    struct eep_dev *eep_device = i2c_get_clientdata(client);
+    device_destroy(eep_class, MKDEV(eep_major, 0));
+
+    kfree(eep_device->data);
+    mutex_destroy(&eep_device->eep_mutex);
+    kfree(eep_device);
+    class_destroy(eep_class);
+    unregister_chrdev_region(MKDEV(eep_major, 0), 1);
+return 0;
+	
 }
   
 static const struct of_device_id i2c_of_ids[] = {
