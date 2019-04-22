@@ -12,12 +12,6 @@
 #include <linux/delay.h>
 #include <asm/uaccess.h>
 
-struct sensor_data {
-	unsigned address;
-	int buffer_size;
-	void *data;
-}
-
 
 #define MAX_BUFFER_SIZE 128  /* buffer size */
 #define DEVICE_NAME "fake_sensor"
@@ -36,6 +30,13 @@ struct i2c_device_data {
   	struct gpio_chip;
 	struct dma_chan *dma_rx, *dma_tx;
 }
+
+struct sensor_data {
+	unsigned address;
+	int buffer_size;
+	void *data;
+}
+
 */
 
 static struct class *eep_class = NULL;
@@ -65,7 +66,8 @@ static int sensor_open(struct inode *inode, struct file *file)
         pr_err("Error allocating memory\n");
         return -ENOMEM;
 	}
-        return 0;
+
+	return 0;
 }
  
 static int sensor_release(struct inode *inode, struct file *file)
@@ -118,7 +120,8 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
   i2c_data = devm_kzalloc(&client->dev, sizeof(*i2c_data), GFP_KERNEL)
   if(!i2c_data)
 	  return -ENOMEM;
-	
+
+/*
   matched_data = devm_kzalloc(&client->dev, sizeof(sensor_data), GFP_KERNEL)
   if(!sensor_data)
 	  return -ENOMEM;
@@ -138,6 +141,7 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	
   i2c_data->i2c = client;
   i2c_data->xdevice = matched_data;
+*/
 	
   i2c_set_clientdata(client, i2c_data);  /* sets the void *driver_data field of the struct device substructure in the 
   						struct i2c_client structure */
@@ -171,6 +175,7 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
             printk(KERN_INFO "Cannot create the Device 1\n");
             goto fail_device;
      }
+		
 
 return 0;	
 
@@ -199,19 +204,14 @@ return 0;
 }
   
 static const struct of_device_id i2c_of_ids[] = {
-  {.compatible = "microchip,devicename", .data = &device1},
+  {.compatible = "microchip,devicename"},
   {},
 }
   
-static struct fake_device device1 = {
-	.address = 0x00010A3F;
-	.buffer_size = 128;
-}
-
 MODULE_DEVICE_TABLE(of, i2c_of_ids);
   
 struct i2c_device_id i2c_ids[] {
-  {"devicename", device1},
+  {"devicename", 0},
   {},
 };
 
