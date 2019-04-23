@@ -101,9 +101,12 @@ static ssize_t sensor_read(struct file *filp, char __user *buf, size_t len, loff
 	dev = filp->private_data;
 	client = dev->i2c;
 	
+	if (mutex_lock_killable(&dev->device_mutex))
+        return -EINTR;
+
 	err = i2c_smbus_read_block_data(client, READ_COMMAND_SLAVE, dev->data);
-		if(err < 0) {
-			printk(KERN_ERR "I2C read error.\n");
+		if(err < MAX_BUFFER_SIZE) {
+			printk(KERN_ERR "I2C read error. \n");
 		}
 	
 	/*
@@ -113,9 +116,12 @@ static ssize_t sensor_read(struct file *filp, char __user *buf, size_t len, loff
 	last_bits = size%8;
 	*/
 	
-	buf = dev->data;
-	
-        return 0;
+	if(copy_to_user(buf, dev->data, strlen(dev->data)) != 0){
+        retval = -EIO;
+
+	mutex_unlock(&dev->device_mutex);
+		
+        return strlen(dev->data);
 }
 
 static ssize_t sensor_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
