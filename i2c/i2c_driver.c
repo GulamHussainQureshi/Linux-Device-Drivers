@@ -15,10 +15,11 @@
 
 #define MAX_BUFFER_SIZE 128  /* buffer size */
 #define DEVICE_NAME "fake_sensor"
+#define READ_COMMAND_SLAVE 0x0034
 
 struct device_data {
   struct i2c_client *i2c;
-  struct sensor_data *xdevice;
+  /* struct sensor_data *xdevice; */
   struct mutex device_mutex;
   struct cdev device_sensor;
   unsigned char *data;      /*array pointer for buffer  */
@@ -40,7 +41,7 @@ struct sensor_data {
 */
 
 static struct class *eep_class = NULL;
-
+dev_t devno;
 
 static int sensor_open(struct inode *inode, struct file *file)
 {
@@ -76,10 +77,10 @@ static int sensor_release(struct inode *inode, struct file *file)
 	
 	struct device_data *dev = filp->private_data;
 	
-   	    if (dev->data != NULL){
+   	    if (dev->data != NULL) {
      		    kfree(dev->data);
   		    dev->data = NULL ;
-    }
+   		 }
 	
         return 0;
 }
@@ -87,13 +88,41 @@ static int sensor_release(struct inode *inode, struct file *file)
 static ssize_t sensor_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
 {
         printk(KERN_INFO "Driver Read Function Called...!!!\n");
+	
+	int err;
+	char *output;
+	ssize_t size;
+	int len_bytes;
+	int last_bits;
+		
+	struct device_data *dev = NULL;
+	struct i2c_client *client;
+	
+	dev = filp->private_data;
+	client = dev->i2c;
+	
+	err = i2c_smbus_read_block_data(client, READ_COMMAND_SLAVE, dev->data);
+		if(err < 0) {
+			printk(KERN_ERR "I2C read error.\n");
+		}
+	
+	/*
+	output = dev->data;
+	size = strlen(output);
+	len_bytes = size/8;
+	last_bits = size%8;
+	*/
+	
+	buf = dev->data;
+	
         return 0;
 }
 
 static ssize_t sensor_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
 {
         printk(KERN_INFO "Cannot write to the sensor...!!!\n");
-        return len;
+	
+        return 0;
 }
 
 static struct file_operations sensor_fops =
@@ -111,7 +140,6 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
   struct sensor_data *matched_data;
   
     int err = 0;
-    dev_t devno;
 
  
   if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
@@ -120,6 +148,8 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
   i2c_data = devm_kzalloc(&client->dev, sizeof(*i2c_data), GFP_KERNEL)
   if(!i2c_data)
 	  return -ENOMEM;
+	
+  mutex_init(i2c_data->device_mutex);
 
 /*
   matched_data = devm_kzalloc(&client->dev, sizeof(sensor_data), GFP_KERNEL)
@@ -139,10 +169,11 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
  	
   client->addr = matched_data->address;
 	
-  i2c_data->i2c = client;
   i2c_data->xdevice = matched_data;
 */
 	
+  i2c_data->i2c = client;
+
   i2c_set_clientdata(client, i2c_data);  /* sets the void *driver_data field of the struct device substructure in the 
   						struct i2c_client structure */
 
@@ -191,14 +222,14 @@ fail_class:
 static int i2c_remove(struct i2c_client *client)
 {
   
-    struct eep_dev *eep_device = i2c_get_clientdata(client);
-    device_destroy(eep_class, MKDEV(eep_major, 0));
+    struct device_data *device = i2c_get_clientdata(client);
+    device_destroy(device_class, devno);
 
-    kfree(eep_device->data);
-    mutex_destroy(&eep_device->eep_mutex);
-    kfree(eep_device);
-    class_destroy(eep_class);
-    unregister_chrdev_region(MKDEV(eep_major, 0), 1);
+    kfree(device->data);
+    mutex_destroy(&device->device_mutex);
+    kfree(device);
+    class_destroy(device_class);
+    unregister_chrdev_region(devno, 1);
 return 0;
 	
 }
