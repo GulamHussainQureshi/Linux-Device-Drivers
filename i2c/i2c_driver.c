@@ -40,7 +40,7 @@ struct sensor_data {
 
 */
 
-static struct class *eep_class = NULL;
+static struct class *device_class = NULL;
 dev_t devno;
 
 static int sensor_open(struct inode *inode, struct file *file)
