@@ -242,5 +242,5 @@ struct spi_driver spidriver {
                                    
 module_spi_driver(spidriver);
                                    
-MODULE_
+MODULE_LICENSE("GPL");
                                  
