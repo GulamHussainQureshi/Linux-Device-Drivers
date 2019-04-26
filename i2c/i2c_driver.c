@@ -266,3 +266,6 @@ static struct i2c_driver sample_i2c_driver = {
 };
 
 module_i2c_driver(sample_i2c_driver);
+
+	
+MODULE_LICENCE("GPL");
