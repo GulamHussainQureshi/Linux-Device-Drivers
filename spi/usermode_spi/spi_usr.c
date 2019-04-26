@@ -6,13 +6,20 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
-#include <linux/spi/spidev.h>
+#include <linux/spi/spidev.h>  /* spidev.h is needed for usermode spi  */
 
 static int pabort (const char *s)
 {
   perror(s)
   return -1;
 }
+
+/*
+ * SPI_IOC_WR_MODE, SPI_IOC_RD_MODE, SPI_IOC_WR_MAX_SPEED_HZ, 
+ * SPI_IOC_RD_MAX_SPEED_HZ and other macros used in the below function 
+ * are SPIDEV IOCTL commands defined in spidev.h, which can be found in
+ * include/uapi/linux/spi/spidev.h
+ */
 
 static int spi_device_setup (int fd)
 {
@@ -40,7 +47,7 @@ if((a < 0) || (b < 0 )) {
     
 /* setting SPI to MSB first.
  * Here, 0 means "not to use LSB first".
- * /
+ */
  
 a = ioctl(fd, SPI_IOC_WR_LSB_FIRST, &i);
 b = ioctl(fd, SPI_IOC_RD_LSB_FIRST, &i);
@@ -70,7 +77,7 @@ static void do_transfer (int fd)
   char rxbuf[3] = {0, };
   char cmd_buff = 0x3D;
   
-  struct spi_ioc_transfer tr[2] = {
+  struct spi_ioc_transfer tr[2] = {  /* struct spi_ioc_transfer is equivalent to kernel struct spi_transfer */
    [0]= {
         .tx_buf = (unsigned long)&cmd_buff,
         .len = 1,
@@ -79,14 +86,15 @@ static void do_transfer (int fd)
         .bits_per_word = 8,
         },
    [1]= {
-        .tx_buf = (unsigned long)txbuf
-        .rx_buff = (unsigned long)rxbuf
+        .tx_buf = (unsigned long)txbuf,
+        .rx_buff = (unsigned long)rxbuf,
         .len = 3,
         .bits_per_word = 8,
         },
 };
 
-ret = ioctl(fd, SPI_IOC_MESSAGE(2), &tr);
+ret = ioctl(fd, SPI_IOC_MESSAGE(2), &tr);   /* SPI_IOC_MESSAGE() is defined in spidev.h
+                                              and is equivalent to kernel spi_sync() */
 if (ret == 1) {
     perror("can't send spi message");
     exit(1);
@@ -111,7 +119,7 @@ int main(int argc, char **argv)
       exit(1);
       
   do_transfer(fd);
-  close(fd)
+  close(fd);
   
   return 0;
  
