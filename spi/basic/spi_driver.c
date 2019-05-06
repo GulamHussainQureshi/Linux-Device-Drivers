@@ -226,7 +226,7 @@ static struct of_device_id spi_of_ids[] = {
   { /*sentinel */ },
 }
 
-MODULE_DEVICE_TABLE(of, spi_of_ids(;
+MODULE_DEVICE_TABLE(of, spi_of_ids);
 
 struct spi_driver spidriver {
   .driver = {
