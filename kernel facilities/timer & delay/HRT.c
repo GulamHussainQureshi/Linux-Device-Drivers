@@ -50,5 +50,4 @@ static void hrt_cleanup_module( void )
 module_init(hrt_init_module);
 module_exit(hrt_cleanup_module);
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("John Madieu <john.madieu@gmail.com>");
 MODULE_DESCRIPTION("Standard timer example");
