@@ -16,14 +16,14 @@ struct custom_data {
 
 static irqreturn_t irq_handler(int irq, void *dev_id) /* this function only wakes the threaded irq handler */
 {
-  pr_info("module handler: %s, irq number is %d\n", __FUNCTION__, my_data->irq_num);
+  pr_info("module handler: %s, irq number is %d\n", __FUNCTION__, dev_id->irq_num);
   
   return IRQ_WAKE_THREAD;
 }
 
 static irqreturn_t threaded_irq_handler(int irq, void *dev_id)
 {
-  pr_info(" module handler: %s, irq number is %d\n", __FUNCTION__, my_data->irq_num);
+  pr_info(" module handler: %s, irq number is %d\n", __FUNCTION__, dev_id->irq_num);
     
   return IRQ_HANDLED;
 }
