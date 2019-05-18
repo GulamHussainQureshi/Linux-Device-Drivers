@@ -66,7 +66,6 @@ This will produce the below debug message
 [  878.823654] buffer copy passed!
 [  889.551947] SDMA test Driver Module Unloaded
 ```
-** ------------------------------------------------------------- **
 
 ## Scatter list DMA
 
@@ -97,7 +96,9 @@ buffer 3 copy passed!
 ```
 
 #### # rmmod imx-sdma-scatter-gather.ko 
+```
 SDMA test Driver Module Unloaded
+````
 
 This will produce the below debug message:
 
