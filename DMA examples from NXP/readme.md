@@ -119,3 +119,5 @@ This will produce the below debug message:
 [ 4221.227934] buffer 3 copy passed!
 [ 4256.051855] SDMA test Driver Module Unloaded
 ```
+
+(Author : John Madieu)
