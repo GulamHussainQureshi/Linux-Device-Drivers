@@ -21,7 +21,7 @@ E: SUBSYSTEM=sdma_test
 ```
 For testing purpose, one just has to write a dummy string into it, and then read anything from it.
 
-#### Single mapping DMA
+## Single mapping DMA
 
 Below is what one can do for testing the single buffer mapping module:
 
